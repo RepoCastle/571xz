@@ -1,0 +1,103 @@
+buildscript {
+  repositories {
+    mavenCentral()
+    maven {
+      url "http://202.38.153.98:8081/nexus/content/groups/public"
+    }
+  }
+  dependencies {
+    classpath 'net.saliman:gradle-cobertura-plugin:2.2.4'
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'checkstyle'
+apply plugin: 'cobertura'
+apply plugin: 'application'
+apply plugin: 'idea'
+
+group = 'cn.hjmao.crawler.taobao'
+version = '0.0.1-SNAPSHOT'
+
+description = """Crawl data from 571xz.com"""
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+repositories {
+  mavenCentral()
+  maven {
+    url "http://202.38.153.98:8081/nexus/content/groups/public"
+  }
+}
+
+dependencies {
+  compile(
+    ['com.google.code.gson:gson:2.2.4'],
+    ['com.google.guava:guava:17.0']
+  )
+
+  testCompile(
+    ['org.testng:testng:6.8.8'],
+    // ['org.uncommons:reportng:1.1.4'],
+    ['org.mockito:mockito-all:1.9.5'],
+    ['org.easytesting:fest-assert-core:2.0M10'],
+    ['com.google.inject:guice:4.0-beta4']
+  )
+}
+
+sourceSets {
+  main {
+    runtimeClasspath = files(output.resourcesDir) + runtimeClasspath
+  }
+  test {
+    runtimeClasspath = files(output.resourcesDir) + runtimeClasspath
+  }
+}
+
+compileJava {
+  options.compilerArgs << '-Xlint:unchecked'
+}
+
+test {
+  useTestNG() {
+    useDefaultListeners = true
+  }
+  testLogging {
+    events "failed" //, "passed", "skipped", "standardOut", "standardError"
+    afterSuite { desc, result ->
+      if (!desc.parent) {
+        println "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+      }
+    }
+  }
+}
+
+cobertura {
+  coverageFormats = ['xml', 'html']
+}
+
+task wrapper(type: Wrapper) {
+  description = 'Install Gradle wrapper'
+  gradleVersion = '2.0'
+}
+
+gradle.allprojects {
+  ext.delDirRecursively = { dirname, exceptFile ->
+    FileTree tree = fileTree(dir: dirname)
+    tree.each { File file ->
+      if (file.isDirectory()) {
+        delDirRecursively(file.absolutePath, exceptFile)
+        file.deleteDir()
+      } else {
+        if (exceptFile ==null || file.getName() != exceptFile) {
+          file.delete()
+        }
+      }
+    }
+  }
+}
+task cleanGen {
+  delDirRecursively("etc/tmp", "README.md")
+}
+mainClassName = "cn.hjmao.crawler.taobao.Main"
